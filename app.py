@@ -10,7 +10,9 @@ import sys
 import requests
 
 
+
 es = Elasticsearch("http://localhost:9200")
+
 
 app = Flask(__name__)
 
@@ -27,6 +29,7 @@ app.config['MYSQL_DB'] = 'foodtruckdb'
 mysql = MySQL(app)
 
 ################################################
+
 # ElasticSearch Functions
 ################################################
 
@@ -75,6 +78,7 @@ def check_and_load_index():
 @app.route("/")
 def index():
     return render_template('index.html')
+
 
 
 @app.route('/debug')
@@ -146,6 +150,7 @@ def search():
         "locations": locations,
         "status": "success"
     })
+
 
 
 # http://localhost:5000/login - the following will be our login page, which will use both GET and POST requests
@@ -271,5 +276,5 @@ def profile():
 
 if __name__ == '__main__':
     ENVIRONMENT_DEBUG = os.environ.get("DEBUG", False)
-    check_and_load_index()
+
     app.run(host='0.0.0.0', port=5000, debug=ENVIRONMENT_DEBUG)
