@@ -20,9 +20,36 @@ services:
     networks:
       - elastic
  
+  db:
+    image: mysql:5.7
+    restart: always
+    environment:
+      MYSQL_DATABASE: 'db'
+      MYSQL_USER: 'dbuser'
+      MYSQL_PASSWORD: 'Aa123456'
+      MYSQL_ROOT_PASSWORD: 'Aa123456!'
+    ports:
+      - '3306:3306'
+    expose:
+      - '3306'
+    volumes:
+      - my-db:/var/lib/mysql
+      
+  web:
+    image: webapp
+    command: python3 app.py
+    ports:
+      - 5000:5000
+    volumes:
+      - ./flask-app:/opt/flask-app
+
+
 volumes:
   data01:
     driver: local
+  my-db:
+    driver: local
+
 networks:
   elastic:
     driver: bridge

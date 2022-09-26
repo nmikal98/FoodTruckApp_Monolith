@@ -10,7 +10,6 @@ import sys
 import requests
 
 
-
 es = Elasticsearch("http://localhost:9200")
 
 
@@ -20,9 +19,9 @@ app = Flask(__name__)
 app.secret_key = 'SBKx2OPukLUp3xZ0kF2og3hcGv2Jyuth'
 
 # Enter your database connection details below
-app.config['MYSQL_HOST'] = 'localhost'
+app.config['MYSQL_HOST'] = 'host.docker.internal'
 app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = ''
+app.config['MYSQL_PASSWORD'] = 'Aa123456!'
 app.config['MYSQL_DB'] = 'foodtruckdb'
 
 # Intialize MySQL
@@ -77,8 +76,10 @@ def check_and_load_index():
 
 @app.route("/")
 def index():
+    if 'loggedin' in session:
+        # User is loggedin show them the home page
+        return render_template('home.html', username=session['username'])
     return render_template('index.html')
-
 
 
 @app.route('/debug')
@@ -152,7 +153,6 @@ def search():
     })
 
 
-
 # http://localhost:5000/login - the following will be our login page, which will use both GET and POST requests
 @app.route("/login", methods=['GET', 'POST'])
 def login():
@@ -201,7 +201,7 @@ def logout():
     session.pop('id', None)
     session.pop('username', None)
     # Redirect to login page
-    return redirect(url_for('login'))
+    return redirect(url_for('index'))
 
 
 # http://localhost:5000/register - this will be the registration page, we need to use both GET and POST requests
