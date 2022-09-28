@@ -3,30 +3,7 @@ import React from "react";
 export default class Vendor extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {
-      isExpanded: false,
-    };
-
-    this.toggleExpand = this.toggleExpand.bind(this);
-  }
-
-  formatFoodItems(items) {
-    if (this.state.isExpanded) {
-      return items.join(", ");
-    }
-    const summary = items.join(", ").substr(0, 80);
-    if (summary.length > 70) {
-      const indexOfLastSpace =
-        summary.split("").reverse().join("").indexOf(",") + 1;
-      return summary.substr(0, 80 - indexOfLastSpace) + " & more...";
-    }
-    return summary;
-  }
-
-  toggleExpand() {
-    this.setState({
-      isExpanded: !this.state.isExpanded,
-    });
+    
   }
 
   render() {
@@ -42,10 +19,7 @@ export default class Vendor extends React.Component {
     );
 
     return (
-      <li
-        onMouseEnter={this.props.handleHover.bind(null, name)}
-        onClick={this.toggleExpand}
-      >
+      <li onMouseEnter={this.props.handleHover.bind(null, name)} >
         <p className="truck-name">{name}</p>
         <div className="row">
           <div className="icons">
@@ -61,8 +35,27 @@ export default class Vendor extends React.Component {
             <i className="ion-fork"></i> <i className="ion-spoon"></i>
           </div>
           <div className="content">
-            Serves {this.formatFoodItems(fooditems)}
+            Serves {fooditems.join(", ")}
           </div>
+        </div>
+        <div className="row">
+          <button className="orderButton" onClick={ () => { var myParams = { data: this.props.data }
+                
+                if (this.props.data != "") {
+                  axios.post('http://localhost:5000/truck/info', myParams)
+                  // .then(function(response){
+                  // console.log(response);
+                  // //Perform action based on response
+                  // })
+                  .catch(function(error){
+                    console.log(error);
+                  //Perform action based on error
+                  });
+                } else {
+                  alert("The data cannot be empty")
+                } } }>
+            Place Order
+          </button>
         </div>
       </li>
     );

@@ -1,19 +1,24 @@
+from audioop import add
+import logging
 from elasticsearch import Elasticsearch, exceptions
 import os
 import time
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, after_this_request
 from flask_mysqldb import MySQL
 import MySQLdb.cursors
 import re
 import bcrypt
 import sys
 import requests
-
+import json
+from flask_cors import CORS
+from extract import json_extract
 
 es = Elasticsearch("http://localhost:9200")
 
 
 app = Flask(__name__)
+CORS(app)
 
 # Change this to your secret key (can be anything, it's for extra protection)
 app.secret_key = 'SBKx2OPukLUp3xZ0kF2og3hcGv2Jyuth'
@@ -26,6 +31,7 @@ app.config['MYSQL_DB'] = 'foodtruckdb'
 
 # Intialize MySQL
 mysql = MySQL(app)
+
 
 ################################################
 
@@ -274,7 +280,20 @@ def profile():
     return redirect(url_for('login'))
 
 
+@app.route('/truck/info', methods=['GET', 'POST'])
+def truckinfo():
+
+    if request.method == "POST":
+
+        data = request.get_json()
+
+        name = json_extract(data, 'name')
+        addresses = json_extract(data, 'address')
+        menu = data['data']['fooditems']
+
+        return data
+
+
 if __name__ == '__main__':
     ENVIRONMENT_DEBUG = os.environ.get("DEBUG", False)
-
     app.run(host='0.0.0.0', port=5000, debug=ENVIRONMENT_DEBUG)

@@ -136,7 +136,6 @@
     border: 1px solid #ddd;
     padding: 5px 10px;
     margin-bottom: 10px;
-    cursor: pointer;
     border-radius: 5px;
   }
   
@@ -356,4 +355,20 @@
   .content > div p {
   padding: 5px;
   margin: 0 0 10px 0;
+  }
+
+  .orderButton {
+    background: none;
+    border: none;
+    border-bottom: 1px solid #ddd;
+    color: #ddd;
+    margin: 10px 5px;
+  }
+
+  .orderButton:hover {
+    cursor: pointer;
+    border-bottom: 1px solid #3274d6;
+    color: #3274d6;
+    padding-bottom: 5px;
+    transition: all 0.2s;
   }
