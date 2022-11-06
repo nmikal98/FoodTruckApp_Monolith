@@ -19,7 +19,7 @@ services:
       - 127.0.0.1:9200:9200
     networks:
       - elastic
- 
+
   db:
     image: mysql:5.7
     restart: always
@@ -34,14 +34,13 @@ services:
       - '3306'
     volumes:
       - my-db:/var/lib/mysql
-      
-  web:
-    image: webapp
-    command: python3 app.py
-    ports:
-      - 5000:5000
-    volumes:
-      - ./flask-app:/opt/flask-app
+  # web:
+  #   image: webapp
+  #   command: python3 app.py
+  #   ports:
+  #     - 5000:5000
+  #   volumes:
+  #     - ./flask-app:/opt/flask-app
 
 
 volumes:
@@ -53,16 +52,6 @@ volumes:
 networks:
   elastic:
     driver: bridge
-
-
-
-
-
-
-
-
-
-
 
 #     version: '2.2'
 # services:

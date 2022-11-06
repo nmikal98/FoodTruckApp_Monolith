@@ -13,6 +13,9 @@ import requests
 import json
 from flask_cors import CORS
 from extract import json_extract
+import os
+import re
+import datetime
 
 es = Elasticsearch("http://localhost:9200")
 
@@ -34,7 +37,6 @@ mysql = MySQL(app)
 
 
 ################################################
-
 # ElasticSearch Functions
 ################################################
 
@@ -280,20 +282,115 @@ def profile():
     return redirect(url_for('login'))
 
 
-@app.route('/truck/info', methods=['GET', 'POST'])
+@app.route('/myOrders')
+def myOrders():
+    # Check if user is loggedin
+    if 'loggedin' in session:
+
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute('SELECT * FROM orders WHERE userid = %s',
+                       (session['id'],))
+        data = cursor.fetchall()
+
+        print(data)
+
+        return render_template('myOrders.html', data=data)
+    # User is not loggedin redirect to login page
+    return redirect(url_for('login'))
+
+
+@app.route('/truck/saveinfo', methods=['GET', 'POST'])
 def truckinfo():
 
-    if request.method == "POST":
+    if request.method == 'POST':
 
         data = request.get_json()
 
         name = json_extract(data, 'name')
-        addresses = json_extract(data, 'address')
-        menu = data['data']['fooditems']
+        slocations = ','.join(json_extract(data, 'address'))
+        smenu = ','.join(data['data']['fooditems'])
 
-        return data
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute('SELECT * FROM foodtruck WHERE truckname = %s', (name))
+
+        if (cursor.rowcount == 0):
+            cursor.execute(
+                'INSERT INTO foodtruck VALUES (NULL, %s, %s, %s)', (name, slocations, smenu))
+            mysql.connection.commit()
+
+        return '', 200
+
+
+@app.route('/placeOrder', methods=['GET', 'POST'])
+def placeOrder():
+
+    if 'loggedin' in session:
+
+        # Show the profile page with account info
+        # , locations=locations, menu=menu
+
+        name = request.args.get('key')
+
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute(
+            'SELECT * FROM foodtruck WHERE truckname = %s', [name])
+        truck = cursor.fetchone()
+
+        locations = re.split('[,&]', truck['locations'])
+        menu = re.split('[,&]', truck['menu'])
+
+        return render_template('order.html', name=name, locations=locations, menu=menu)
+    # User is not loggedin redirect to login page
+    return redirect(url_for('login'))
+
+
+@app.route('/cancel')
+def cancel():
+
+    return redirect(url_for('index'))
+
+
+@app.route('/saveOrder', methods=['POST'])
+def saveOrder():
+
+    try:
+        if request.method == 'POST':
+
+            truckname = request.form['truckname']
+
+            location = request.form['location']
+
+            orderDetails = ""
+
+            itterations = 0
+
+            for item, itemQuantity in zip(request.form.getlist('item'), request.form.getlist('itemQuantity')):
+
+                if itemQuantity != '0':
+                    if itterations == 0:
+                        orderDetails = item + ":" + itemQuantity
+                        itterations += 1
+                    else:
+                        orderDetails = orderDetails + "," + \
+                            item + ":" + itemQuantity
+
+            date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+            cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+            cursor.execute(
+                'INSERT INTO orders VALUES (NULL, %s, %s, %s,%s, %s)', (session['id'], truckname, location, orderDetails, date))
+            mysql.connection.commit()
+
+        else:
+            return render_template('create.html')
+    except Exception as e:
+        print(str(e))
+
+    return redirect(url_for('myOrders'))
 
 
 if __name__ == '__main__':
     ENVIRONMENT_DEBUG = os.environ.get("DEBUG", False)
+    check_and_load_index()
     app.run(host='0.0.0.0', port=5000, debug=ENVIRONMENT_DEBUG)
