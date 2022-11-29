@@ -40,3 +40,6 @@ CREATE TABLE IF NOT EXISTS orders (
 	FOREIGN KEY (userid) REFERENCES accounts(id)
 
 ) DEFAULT CHARSET=utf8;
+
+
+
