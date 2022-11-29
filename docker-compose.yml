@@ -9,6 +9,8 @@ services:
       - 9200:9200
     volumes:
       - esdata1:/usr/share/elasticsearch/data
+    networks:
+      - my-private-ntwk
 
   db:
     image: database01
@@ -24,7 +26,8 @@ services:
       - '3306'
     volumes:
       - my-db01:/var/lib/mysql
-
+    networks:
+      - my-private-ntwk
 
   web:
     image: webapp
@@ -35,7 +38,8 @@ services:
       - 5000:5000
     volumes:
       - ./flask-app:/opt/flask-app
-
+    networks:
+      - my-private-ntwk
   
 
 volumes:
@@ -44,7 +48,9 @@ volumes:
   my-db01:
     driver: local
 
-
+networks:
+  my-private-ntwk:
+      name: my_ntwk
 
 #     version: '2.2'
 # services:
