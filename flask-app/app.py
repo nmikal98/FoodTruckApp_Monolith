@@ -17,8 +17,9 @@ import os
 import re
 import datetime
 
-es = Elasticsearch("http://localhost:9200")
+#es = Elasticsearch("http://elastic:9200")
 
+es = Elasticsearch(host='es')
 
 app = Flask(__name__)
 CORS(app)
@@ -330,6 +331,11 @@ def placeOrder():
         # , locations=locations, menu=menu
 
         name = request.args.get('key')
+        if not name:
+            return jsonify({
+                "status": "failure",
+                "msg": "Please provide a query"
+            })
 
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
         cursor.execute(
@@ -353,41 +359,57 @@ def cancel():
 @app.route('/saveOrder', methods=['POST'])
 def saveOrder():
 
-    try:
-        if request.method == 'POST':
+    if 'loggedin' in session:
 
-            truckname = request.form['truckname']
+        try:
+            if request.method == 'POST':
 
-            location = request.form['location']
+                key = request.args.get('key')
+                orderDetails = ""
+                itterations = 0
+                if not key:
 
-            orderDetails = ""
+                    truckname = request.form['truckname']
 
-            itterations = 0
+                    location = request.form['location']
 
-            for item, itemQuantity in zip(request.form.getlist('item'), request.form.getlist('itemQuantity')):
+                    for item, itemQuantity in zip(request.form.getlist('item'), request.form.getlist('itemQuantity')):
 
-                if itemQuantity != '0':
-                    if itterations == 0:
-                        orderDetails = item + ":" + itemQuantity
-                        itterations += 1
-                    else:
-                        orderDetails = orderDetails + "," + \
-                            item + ":" + itemQuantity
+                        if itemQuantity != '0':
+                            if itterations == 0:
+                                orderDetails = item + ":" + itemQuantity
+                                itterations += 1
+                            else:
+                                orderDetails = orderDetails + "," + \
+                                    item + ":" + itemQuantity
+                else:
+                    truckname = key['truckname']
+                    location = key['location']
 
-            date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    for i in key['order']:
+                        if itterations == 0:
+                            orderDetails = i["item"] + ":" + i["qty"]
+                            itterations += 1
+                        else:
+                            orderDetails = orderDetails + \
+                                "," + i["item"] + ":" + i["qty"]
 
-            cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+                date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            cursor.execute(
-                'INSERT INTO orders VALUES (NULL, %s, %s, %s,%s, %s)', (session['id'], truckname, location, orderDetails, date))
-            mysql.connection.commit()
+                cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
-        else:
-            return render_template('create.html')
-    except Exception as e:
-        print(str(e))
+                cursor.execute(
+                    'INSERT INTO orders VALUES (NULL, %s, %s, %s,%s, %s)', (session['id'], truckname, location, orderDetails, date))
+                mysql.connection.commit()
 
-    return redirect(url_for('myOrders'))
+            else:
+                return render_template('create.html')
+        except Exception as e:
+            print(str(e))
+
+        return redirect(url_for('myOrders'))
+ # User is not loggedin redirect to login page
+    return redirect(url_for('login'))
 
 
 if __name__ == '__main__':

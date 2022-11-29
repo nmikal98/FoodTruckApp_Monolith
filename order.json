@@ -1,0 +1,19 @@
+{
+    "truckname": "El Alambre",
+    "location": "1800 FOLSOM ST",
+    "order": [
+        {
+            "item":"Tacos",
+            "qty":1
+        },
+        {   
+            "item":"Quesadillas",
+            "qty":1
+        }
+    ]
+}
+
+
+
+session 
+eyJpZCI6MSwibG9nZ2VkaW4iOnRydWUsInVzZXJuYW1lIjoidXNlciJ9.Y4XJYQ.wPGYdkGdL7erlX3Q-Fae0w6FWhk
