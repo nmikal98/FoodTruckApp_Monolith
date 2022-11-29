@@ -28,7 +28,7 @@ CORS(app)
 app.secret_key = 'SBKx2OPukLUp3xZ0kF2og3hcGv2Jyuth'
 
 # Enter your database connection details below
-app.config['MYSQL_HOST'] = 'host.docker.internal'
+app.config['MYSQL_HOST'] = 'mydb'
 app.config['MYSQL_USER'] = 'root'
 app.config['MYSQL_PASSWORD'] = 'Aa123456!'
 app.config['MYSQL_DB'] = 'foodtruckdb'

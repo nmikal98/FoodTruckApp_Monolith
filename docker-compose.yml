@@ -15,6 +15,7 @@ services:
   db:
     image: database01
     restart: always
+    container_name: mydb
     environment:
       MYSQL_DATABASE: 'db'
       MYSQL_USER: 'dbuser'
