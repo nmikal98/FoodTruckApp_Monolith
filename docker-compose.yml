@@ -11,7 +11,7 @@ services:
       - esdata1:/usr/share/elasticsearch/data
 
   db:
-    image: mysql:5.7
+    image: database01
     restart: always
     environment:
       MYSQL_DATABASE: 'db'
@@ -23,7 +23,7 @@ services:
     expose:
       - '3306'
     volumes:
-      - my-db:/var/lib/mysql
+      - my-db01:/var/lib/mysql
 
 
   web:
@@ -41,7 +41,7 @@ services:
 volumes:
   esdata1:
     driver: local
-  my-db:
+  my-db01:
     driver: local
 
 
