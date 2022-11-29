@@ -361,55 +361,56 @@ def saveOrder():
 
     if 'loggedin' in session:
 
-        try:
-            if request.method == 'POST':
+       # try:
+        if request.method == 'POST':
 
-                key = request.args.get('key')
-                orderDetails = ""
-                itterations = 0
-                if not key:
+            key = request.get_json()
+    return key
+    #             orderDetails = ""
+    #             itterations = 0
+    #             if not key:
 
-                    truckname = request.form['truckname']
+    #                 truckname = request.form['truckname']
 
-                    location = request.form['location']
+    #                 location = request.form['location']
 
-                    for item, itemQuantity in zip(request.form.getlist('item'), request.form.getlist('itemQuantity')):
+    #                 for item, itemQuantity in zip(request.form.getlist('item'), request.form.getlist('itemQuantity')):
 
-                        if itemQuantity != '0':
-                            if itterations == 0:
-                                orderDetails = item + ":" + itemQuantity
-                                itterations += 1
-                            else:
-                                orderDetails = orderDetails + "," + \
-                                    item + ":" + itemQuantity
-                else:
-                    truckname = key['truckname']
-                    location = key['location']
+    #                     if itemQuantity != '0':
+    #                         if itterations == 0:
+    #                             orderDetails = item + ":" + itemQuantity
+    #                             itterations += 1
+    #                         else:
+    #                             orderDetails = orderDetails + "," + \
+    #                                 item + ":" + itemQuantity
+    #             else:
+    #                 truckname = key['truckname']
+    #                 location = key['location']
 
-                    for i in key['order']:
-                        if itterations == 0:
-                            orderDetails = i["item"] + ":" + i["qty"]
-                            itterations += 1
-                        else:
-                            orderDetails = orderDetails + \
-                                "," + i["item"] + ":" + i["qty"]
+    #                 for i in key['order']:
+    #                     if itterations == 0:
+    #                         orderDetails = i["item"] + ":" + i["qty"]
+    #                         itterations += 1
+    #                     else:
+    #                         orderDetails = orderDetails + \
+    #                             "," + i["item"] + ":" + i["qty"]
 
-                date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    #             date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-                cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    #             cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
-                cursor.execute(
-                    'INSERT INTO orders VALUES (NULL, %s, %s, %s,%s, %s)', (session['id'], truckname, location, orderDetails, date))
-                mysql.connection.commit()
+    #             cursor.execute(
+    #                 'INSERT INTO orders VALUES (NULL, %s, %s, %s,%s, %s)', (session['id'], truckname, location, orderDetails, date))
+    #             mysql.connection.commit()
 
-            else:
-                return render_template('create.html')
-        except Exception as e:
-            print(str(e))
+    #         else:
+    #             return render_template('create.html')
+    #     except Exception as e:
+    #         print(str(e))
 
-        return redirect(url_for('myOrders'))
- # User is not loggedin redirect to login page
-    return redirect(url_for('login'))
+    #     return redirect(url_for('myOrders'))
+
+    # return redirect(url_for('login'))
 
 
 if __name__ == '__main__':
