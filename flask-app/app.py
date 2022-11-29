@@ -1,35 +1,43 @@
+from audioop import add
+import logging
 from elasticsearch import Elasticsearch, exceptions
 import os
 import time
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, after_this_request
 from flask_mysqldb import MySQL
 import MySQLdb.cursors
 import re
 import bcrypt
 import sys
 import requests
+import json
+from flask_cors import CORS
+from extract import json_extract
+import os
+import re
+import datetime
 
+#es = Elasticsearch("http://elastic:9200")
 
-
-es = Elasticsearch("http://localhost:9200")
-
+es = Elasticsearch(host='es')
 
 app = Flask(__name__)
+CORS(app)
 
 # Change this to your secret key (can be anything, it's for extra protection)
 app.secret_key = 'SBKx2OPukLUp3xZ0kF2og3hcGv2Jyuth'
 
 # Enter your database connection details below
-app.config['MYSQL_HOST'] = 'localhost'
+app.config['MYSQL_HOST'] = 'host.docker.internal'
 app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = ''
+app.config['MYSQL_PASSWORD'] = 'Aa123456!'
 app.config['MYSQL_DB'] = 'foodtruckdb'
 
 # Intialize MySQL
 mysql = MySQL(app)
 
-################################################
 
+################################################
 # ElasticSearch Functions
 ################################################
 
@@ -77,8 +85,10 @@ def check_and_load_index():
 
 @app.route("/")
 def index():
+    if 'loggedin' in session:
+        # User is loggedin show them the home page
+        return render_template('home.html', username=session['username'])
     return render_template('index.html')
-
 
 
 @app.route('/debug')
@@ -152,7 +162,6 @@ def search():
     })
 
 
-
 # http://localhost:5000/login - the following will be our login page, which will use both GET and POST requests
 @app.route("/login", methods=['GET', 'POST'])
 def login():
@@ -201,7 +210,7 @@ def logout():
     session.pop('id', None)
     session.pop('username', None)
     # Redirect to login page
-    return redirect(url_for('login'))
+    return redirect(url_for('index'))
 
 
 # http://localhost:5000/register - this will be the registration page, we need to use both GET and POST requests
@@ -274,7 +283,136 @@ def profile():
     return redirect(url_for('login'))
 
 
+@app.route('/myOrders')
+def myOrders():
+    # Check if user is loggedin
+    if 'loggedin' in session:
+
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute('SELECT * FROM orders WHERE userid = %s',
+                       (session['id'],))
+        data = cursor.fetchall()
+
+        print(data)
+
+        return render_template('myOrders.html', data=data)
+    # User is not loggedin redirect to login page
+    return redirect(url_for('login'))
+
+
+@app.route('/truck/saveinfo', methods=['GET', 'POST'])
+def truckinfo():
+
+    if request.method == 'POST':
+
+        data = request.get_json()
+
+        name = json_extract(data, 'name')
+        slocations = ','.join(json_extract(data, 'address'))
+        smenu = ','.join(data['data']['fooditems'])
+
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute('SELECT * FROM foodtruck WHERE truckname = %s', (name))
+
+        if (cursor.rowcount == 0):
+            cursor.execute(
+                'INSERT INTO foodtruck VALUES (NULL, %s, %s, %s)', (name, slocations, smenu))
+            mysql.connection.commit()
+
+        return '', 200
+
+
+@app.route('/placeOrder', methods=['GET', 'POST'])
+def placeOrder():
+
+    if 'loggedin' in session:
+
+        # Show the profile page with account info
+        # , locations=locations, menu=menu
+
+        name = request.args.get('key')
+        if not name:
+            return jsonify({
+                "status": "failure",
+                "msg": "Please provide a query"
+            })
+
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute(
+            'SELECT * FROM foodtruck WHERE truckname = %s', [name])
+        truck = cursor.fetchone()
+
+        locations = re.split('[,&]', truck['locations'])
+        menu = re.split('[,&]', truck['menu'])
+
+        return render_template('order.html', name=name, locations=locations, menu=menu)
+    # User is not loggedin redirect to login page
+    return redirect(url_for('login'))
+
+
+@app.route('/cancel')
+def cancel():
+
+    return redirect(url_for('index'))
+
+
+@app.route('/saveOrder', methods=['POST'])
+def saveOrder():
+
+    if 'loggedin' in session:
+
+        try:
+            if request.method == 'POST':
+
+                key = request.args.get('key')
+                orderDetails = ""
+                itterations = 0
+                if not key:
+
+                    truckname = request.form['truckname']
+
+                    location = request.form['location']
+
+                    for item, itemQuantity in zip(request.form.getlist('item'), request.form.getlist('itemQuantity')):
+
+                        if itemQuantity != '0':
+                            if itterations == 0:
+                                orderDetails = item + ":" + itemQuantity
+                                itterations += 1
+                            else:
+                                orderDetails = orderDetails + "," + \
+                                    item + ":" + itemQuantity
+                else:
+                    truckname = key['truckname']
+                    location = key['location']
+
+                    for i in key['order']:
+                        if itterations == 0:
+                            orderDetails = i["item"] + ":" + i["qty"]
+                            itterations += 1
+                        else:
+                            orderDetails = orderDetails + \
+                                "," + i["item"] + ":" + i["qty"]
+
+                date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+                cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+                cursor.execute(
+                    'INSERT INTO orders VALUES (NULL, %s, %s, %s,%s, %s)', (session['id'], truckname, location, orderDetails, date))
+                mysql.connection.commit()
+
+            else:
+                return render_template('create.html')
+        except Exception as e:
+            print(str(e))
+
+        return redirect(url_for('myOrders'))
+ # User is not loggedin redirect to login page
+    return redirect(url_for('login'))
+
+
 if __name__ == '__main__':
     ENVIRONMENT_DEBUG = os.environ.get("DEBUG", False)
-
+    check_and_load_index()
     app.run(host='0.0.0.0', port=5000, debug=ENVIRONMENT_DEBUG)

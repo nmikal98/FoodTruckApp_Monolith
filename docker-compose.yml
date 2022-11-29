@@ -1,39 +1,48 @@
 version: '2.2'
 services:
-  es01:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.6
-    container_name: es01
+  es:
+    image: docker.elastic.co/elasticsearch/elasticsearch:6.3.2
+    container_name: es
     environment:
-      - node.name=es01
-      - cluster.name=es-docker-cluster
-      - cluster.initial_master_nodes=es01
-      - bootstrap.memory_lock=true
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-    volumes:
-      - data01:/usr/share/elasticsearch/data
+      - discovery.type=single-node
     ports:
-      - 127.0.0.1:9200:9200
-    networks:
-      - elastic
- 
+      - 9200:9200
+    volumes:
+      - esdata1:/usr/share/elasticsearch/data
+
+  db:
+    image: mysql:5.7
+    restart: always
+    environment:
+      MYSQL_DATABASE: 'db'
+      MYSQL_USER: 'dbuser'
+      MYSQL_PASSWORD: 'Aa123456'
+      MYSQL_ROOT_PASSWORD: 'Aa123456!'
+    ports:
+      - '3306:3306'
+    expose:
+      - '3306'
+    volumes:
+      - my-db:/var/lib/mysql
+
+
+  web:
+    image: webapp
+    command: python3 app.py
+    depends_on:
+      - es
+    ports:
+      - 5000:5000
+    volumes:
+      - ./flask-app:/opt/flask-app
+
+  
+
 volumes:
-  data01:
+  esdata1:
     driver: local
-networks:
-  elastic:
-    driver: bridge
-
-
-
-
-
-
-
-
+  my-db:
+    driver: local
 
 
 
