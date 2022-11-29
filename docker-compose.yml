@@ -9,7 +9,8 @@ services:
       - 9200:9200
     volumes:
       - esdata1:/usr/share/elasticsearch/data
-      
+    networks:
+      - my-net  
 
   db:
     image: database01
@@ -25,7 +26,8 @@ services:
       - '3306'
     volumes:
       - my-db01:/var/lib/mysql
-  
+    networks:
+      - my-net    
 
   web:
     image: webapp
@@ -36,7 +38,8 @@ services:
       - 5000:5000
     volumes:
       - ./flask-app:/opt/flask-app
-   
+    networks:
+      - my-net   
   
 
 volumes:
@@ -44,6 +47,11 @@ volumes:
     driver: local
   my-db01:
     driver: local
+
+
+networks:
+  my-net:
+    driver: bridge
 
 
 
