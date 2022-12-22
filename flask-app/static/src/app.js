@@ -4,7 +4,7 @@ import Sidebar from "./components/Sidebar";
 
 // setting up mapbox
 mapboxgl.accessToken =
-  "pk.eyJ1Ijoibm1pa2FsMDEiLCJhIjoiY2w4YmswaXFxMDlmMTNwcTlkcjhjd25qNCJ9.pPUP09tRbmcyIeR2FjsP4Q";
+  "pk.eyJ1Ijoibm1pa2FsMDEiLCJhIjoiY2xibTM4YnRnMGRjcDNwbXZ2a2N3MmNmbSJ9.Hoaznn3N4ac-03Cle_Up9g";
 
 var map = new mapboxgl.Map({
   container: "map",

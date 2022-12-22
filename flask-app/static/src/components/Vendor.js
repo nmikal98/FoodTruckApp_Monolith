@@ -42,15 +42,15 @@ export default class Vendor extends React.Component {
           <button className="orderButton" onClick={ () => { var myParams = { data: this.props.data }
                 
                 if (this.props.data != "") {
-                  axios.post('/truck/saveinfo', myParams)
-                  .then(function(){
+                  // axios.post('/truck/saveinfo', myParams)
+                  // .then(function(){
                    window.location.href = "/placeOrder?key="+ name;
                   //Perform action based on response
-                  })
-                  .catch(function(error){
-                    console.log(error);
-                  //Perform action based on error
-                  });
+                  // })
+                  // .catch(function(error){
+                  //   console.log(error);
+                  // //Perform action based on error
+                  // });
                 } else {
                   alert("The data cannot be empty")
                 } } }>

@@ -18,16 +18,6 @@ CREATE TABLE IF NOT EXISTS accounts (
 ) DEFAULT CHARSET=utf8;
 
 
-CREATE TABLE IF NOT EXISTS foodtruck (
-	id int(11) NOT NULL AUTO_INCREMENT,
-  	truckname varchar(100) NOT NULL,
-  	locations LONGTEXT NOT NULL,
-	menu LONGTEXT NOT NULL,
-    PRIMARY KEY (id),
-	CONSTRAINT u_name UNIQUE (truckname)
-) DEFAULT CHARSET=utf8;
-
-
 
 CREATE TABLE IF NOT EXISTS orders (
 	id int(11) NOT NULL AUTO_INCREMENT,

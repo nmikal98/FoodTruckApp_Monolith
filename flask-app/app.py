@@ -17,7 +17,7 @@ import os
 import re
 import datetime
 
-# es = Elasticsearch("http://elastic:9200")
+#es = Elasticsearch("http://localhost:9200")
 
 es = Elasticsearch(host='es')
 
@@ -29,6 +29,7 @@ app.secret_key = 'SBKx2OPukLUp3xZ0kF2og3hcGv2Jyuth'
 
 # Enter your database connection details below
 app.config['MYSQL_HOST'] = 'mydb'
+#app.config['MYSQL_HOST'] = 'host.docker.internal'
 app.config['MYSQL_USER'] = 'root'
 app.config['MYSQL_PASSWORD'] = 'Aa123456!'
 app.config['MYSQL_DB'] = 'foodtruckdb'
@@ -115,12 +116,10 @@ def search():
     try:
         res = es.search(
             index="sfdata",
-            query={"match": {"fooditems": key}},
-            # body={
-            #     "query": {"match": {"fooditems": key}},
-            #     "size": 750  # max document size
-            # })
-        )
+            body={
+                "query": {"match": {"fooditems": key}},
+                "size": 750  # max document size
+            })
     except Exception as e:
         return jsonify({
             "status": "failure",
@@ -162,7 +161,60 @@ def search():
     })
 
 
+@app.route('/searchstore')
+def searchstore():
+    key = request.args.get('q')
+    if not key:
+        return jsonify({
+            "status": "failure",
+            "msg": "Please provide a query"
+        })
+    try:
+        res = es.search(
+            index="sfdata",
+            body={
+                "query": {"match_phrase": {"applicant": key}},
+                "size": 750  # max document size
+            }
+        )
+    except Exception as e:
+        return jsonify({
+            "status": "failure",
+            "msg": "error in reaching elasticsearch"
+        })
+    # filtering results
+    vendors = set([x["_source"]["applicant"] for x in res["hits"]["hits"]])
+    temp = {v: [] for v in vendors}
+    fooditems = {v: "" for v in vendors}
+    for r in res["hits"]["hits"]:
+        applicant = r["_source"]["applicant"]
+        if "location" in r["_source"]:
+            truck = {
+
+                "address": r["_source"].get("address", "NA")
+            }
+            fooditems[applicant] = r["_source"]["fooditems"]
+            temp[applicant].append(truck)
+
+    # building up results
+    results = {"trucks": []}
+    for v in temp:
+        results["trucks"].append({
+            "name": v,
+            "fooditems": format_fooditems(fooditems[v]),
+            "branches": temp[v],
+            "drinks": fooditems[v].find("COLD TRUCK") > -1
+        })
+    hits = len(results["trucks"])
+    locations = sum([len(r["branches"]) for r in results["trucks"]])
+
+    return jsonify({
+        "trucks": results["trucks"]
+    })
+
 # http://localhost:5000/login - the following will be our login page, which will use both GET and POST requests
+
+
 @app.route("/login", methods=['GET', 'POST'])
 def login():
     # Output message if something goes wrong...
@@ -300,26 +352,26 @@ def myOrders():
     return redirect(url_for('login'))
 
 
-@app.route('/truck/saveinfo', methods=['GET', 'POST'])
-def truckinfo():
+# @app.route('/truck/saveinfo', methods=['GET', 'POST'])
+# def truckinfo():
 
-    if request.method == 'POST':
+#     if request.method == 'POST':
 
-        data = request.get_json()
+#         data = request.get_json()
 
-        name = json_extract(data, 'name')
-        slocations = ','.join(json_extract(data, 'address'))
-        smenu = ','.join(data['data']['fooditems'])
+#         name = json_extract(data, 'name')
+#         slocations = ','.join(json_extract(data, 'address'))
+#         smenu = ','.join(data['data']['fooditems'])
 
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        cursor.execute('SELECT * FROM foodtruck WHERE truckname = %s', (name))
+#         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+#         cursor.execute('SELECT * FROM foodtruck WHERE truckname = %s', (name))
 
-        if (cursor.rowcount == 0):
-            cursor.execute(
-                'INSERT INTO foodtruck VALUES (NULL, %s, %s, %s)', (name, slocations, smenu))
-            mysql.connection.commit()
+#         if (cursor.rowcount == 0):
+#             cursor.execute(
+#                 'INSERT INTO foodtruck VALUES (NULL, %s, %s, %s)', (name, slocations, smenu))
+#             mysql.connection.commit()
 
-        return '', 200
+#         return '', 200
 
 
 @app.route('/placeOrder', methods=['GET', 'POST'])
@@ -331,19 +383,35 @@ def placeOrder():
         # , locations=locations, menu=menu
 
         name = request.args.get('key')
+
         if not name:
             return jsonify({
                 "status": "failure",
                 "msg": "Please provide a query"
             })
 
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        cursor.execute(
-            'SELECT * FROM foodtruck WHERE truckname = %s', [name])
-        truck = cursor.fetchone()
+        res = requests.get('http://localhost:5000/searchstore?q="'+name+'"')
+        truck_data = res.json()
 
-        locations = re.split('[,&]', truck['locations'])
-        menu = re.split('[,&]', truck['menu'])
+        locations = []
+
+        for item in truck_data['trucks'][0]['branches']:
+            for attr, val in item.items():
+                locations.append(val)
+
+        menu = truck_data['trucks'][0]['fooditems']
+
+        # response = requests.request(
+        #     method="POST", url='/searchstore', data=name)
+
+        # print(response)
+    #     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    #     cursor.execute(
+    #         'SELECT * FROM foodtruck WHERE truckname = %s', [name])
+    #     truck = cursor.fetchone()
+
+    #     locations = re.split('[,&]', truck['locations'])
+    #     menu = re.split('[,&]', truck['menu'])
 
         return render_template('order.html', name=name, locations=locations, menu=menu)
     # User is not loggedin redirect to login page
@@ -389,16 +457,26 @@ def saveOrder():
                     location = loc
                     orderDetails = items
 
-                date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                res = requests.get(
+                    'http://localhost:5000/searchstore?q="'+truckname+'"')
+                truck_data = res.json()
 
-                cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+                if truck_data['trucks'] != []:
 
-                cursor.execute(
-                    'INSERT INTO orders VALUES (NULL, %s, %s, %s,%s, %s)', (session['id'], truckname, location, orderDetails, date))
-                mysql.connection.commit()
+                    date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+                    cursor = mysql.connection.cursor(
+                        MySQLdb.cursors.DictCursor)
+
+                    cursor.execute(
+                        'INSERT INTO orders VALUES (NULL, %s, %s, %s,%s, %s)', (session['id'], truckname, location, orderDetails, date))
+                    mysql.connection.commit()
+                else:
+                    print("Foodtruck not found")
+                    redirect(url_for('home'))
 
             else:
-                return render_template('create.html')
+                redirect(url_for('home'))
         except Exception as e:
             print(str(e))
 
