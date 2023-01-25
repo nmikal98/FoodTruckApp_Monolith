@@ -17,9 +17,9 @@ import os
 import re
 import datetime
 
-#es = Elasticsearch("http://localhost:9200")
+es = Elasticsearch("http://localhost:9200")
 
-es = Elasticsearch(host='es')
+#es = Elasticsearch(host='es')
 
 app = Flask(__name__)
 CORS(app)
@@ -28,8 +28,8 @@ CORS(app)
 app.secret_key = 'SBKx2OPukLUp3xZ0kF2og3hcGv2Jyuth'
 
 # Enter your database connection details below
-app.config['MYSQL_HOST'] = 'mydb'
-#app.config['MYSQL_HOST'] = 'host.docker.internal'
+#app.config['MYSQL_HOST'] = 'mydb'
+app.config['MYSQL_HOST'] = 'host.docker.internal'
 app.config['MYSQL_USER'] = 'root'
 app.config['MYSQL_PASSWORD'] = 'Aa123456!'
 app.config['MYSQL_DB'] = 'foodtruckdb'
