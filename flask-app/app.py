@@ -19,7 +19,7 @@ import datetime
 
 #es = Elasticsearch("http://localhost:9200")
 
-es = Elasticsearch(host='es')
+es = Elasticsearch(host='es_mono')
 
 app = Flask(__name__)
 CORS(app)
@@ -28,7 +28,7 @@ CORS(app)
 app.secret_key = 'SBKx2OPukLUp3xZ0kF2og3hcGv2Jyuth'
 
 # Enter your database connection details below
-app.config['MYSQL_HOST'] = 'mydb'
+app.config['MYSQL_HOST'] = 'mydb_mon'
 #app.config['MYSQL_HOST'] = 'host.docker.internal'
 app.config['MYSQL_USER'] = 'root'
 app.config['MYSQL_PASSWORD'] = 'Aa123456!'
@@ -50,7 +50,7 @@ def load_data_in_es():
     data = r.json()
     print("Loading data in elasticsearch ...")
     for id, truck in enumerate(data):
-        res = es.index(index="sfdata", id=id, document=truck)
+        res = es.index(index="sfdata", id=id, body=truck)
     print("Total trucks loaded: ", len(data))
 
 
@@ -153,12 +153,15 @@ def search():
     hits = len(results["trucks"])
     locations = sum([len(r["branches"]) for r in results["trucks"]])
 
-    return jsonify({
+    resp = jsonify({
         "trucks": results["trucks"],
         "hits": hits,
         "locations": locations,
         "status": "success"
     })
+   
+    
+    return resp
 
 
 @app.route('/searchstore')
