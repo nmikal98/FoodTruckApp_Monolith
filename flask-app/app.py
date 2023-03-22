@@ -45,9 +45,16 @@ mysql = MySQL(app)
 
 def load_data_in_es():
     """ creates an index in elasticsearch """
-    url = "http://data.sfgov.org/resource/rqzj-sfat.json"
-    r = requests.get(url)
-    data = r.json()
+    # url = "http://data.sfgov.org/resource/rqzj-sfat.json"
+    # r = requests.get(url)
+    # data = r.json()
+
+    with open('./data.json', 'r') as f:
+        json_data = f.read()
+
+# Parse the JSON data into a Python object
+    data = json.loads(json_data)
+
     print("Loading data in elasticsearch ...")
     for id, truck in enumerate(data):
         res = es.index(index="sfdata", id=id, body=truck)
@@ -236,6 +243,8 @@ def login():
         # Fetch one record and return result
         account = cursor.fetchone()
 
+        print(account)
+
         # If account exists in accounts table in our database
         if account:
             storedpsw = account['userPsw'].encode('utf-8')
@@ -246,7 +255,13 @@ def login():
                 session['id'] = account['id']
                 session['username'] = account['username']
                 # Redirect to home page
-                return redirect(url_for('home'))
+
+                if account['usersRole'] == 'user':
+                    return redirect(url_for('home'))
+                elif account['usersRole'] == 'worker':
+                    return redirect(url_for('workerHome'))
+                else:
+                    return render_template('login.html', msg='')
             else:
                 # Incorrect password
                 msg = 'Incorrect password!'
@@ -322,6 +337,23 @@ def home():
     return redirect(url_for('login'))
 
 
+@app.route('/workerHome')
+def workerHome():
+    # Check if user is loggedin
+    if 'loggedin' in session:
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute('SELECT * FROM orders WHERE isCompleted = 0')
+
+        data = cursor.fetchall()
+
+        print(data)
+
+     
+        return render_template('worker-home.html', data=data)
+    # User is not loggedin redirect to login page
+    return redirect(url_for('login'))
+
+
 # http://localhost:5000/profile - this will be the profile page, only accessible for loggedin users
 @app.route('/profile')
 def profile():
@@ -354,27 +386,6 @@ def myOrders():
     # User is not loggedin redirect to login page
     return redirect(url_for('login'))
 
-
-# @app.route('/truck/saveinfo', methods=['GET', 'POST'])
-# def truckinfo():
-
-#     if request.method == 'POST':
-
-#         data = request.get_json()
-
-#         name = json_extract(data, 'name')
-#         slocations = ','.join(json_extract(data, 'address'))
-#         smenu = ','.join(data['data']['fooditems'])
-
-#         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-#         cursor.execute('SELECT * FROM foodtruck WHERE truckname = %s', (name))
-
-#         if (cursor.rowcount == 0):
-#             cursor.execute(
-#                 'INSERT INTO foodtruck VALUES (NULL, %s, %s, %s)', (name, slocations, smenu))
-#             mysql.connection.commit()
-
-#         return '', 200
 
 
 @app.route('/placeOrder', methods=['GET', 'POST'])
@@ -419,6 +430,7 @@ def placeOrder():
         return render_template('order.html', name=name, locations=locations, menu=menu)
     # User is not loggedin redirect to login page
     return redirect(url_for('login'))
+
 
 
 @app.route('/cancel')
@@ -472,7 +484,7 @@ def saveOrder():
                         MySQLdb.cursors.DictCursor)
 
                     cursor.execute(
-                        'INSERT INTO orders VALUES (NULL, %s, %s, %s,%s, %s)', (session['id'], truckname, location, orderDetails, date))
+                        'INSERT INTO orders VALUES (NULL, %s, %s, %s,%s, %s, %s)', (session['id'], truckname, location, orderDetails, date, 0))
                     mysql.connection.commit()
                 else:
                     print("Foodtruck not found")
@@ -486,6 +498,50 @@ def saveOrder():
         return redirect(url_for('myOrders'))
  # User is not loggedin redirect to login page
     return redirect(url_for('login'))
+
+
+
+
+
+@app.route('/completeOrder', methods=['POST'])
+def completeOrder():
+
+    if 'loggedin' in session:
+
+        try:
+            if request.method == 'POST':
+
+                id = request.args.get('orderId')
+
+
+                if not id:
+                   
+                    id = request.form['orderId']
+
+                    
+
+                
+
+                    cursor = mysql.connection.cursor(
+                        MySQLdb.cursors.DictCursor)
+
+                    cursor.execute('UPDATE orders SET isCompleted = 1 WHERE id =%s;',(id))
+                    mysql.connection.commit()
+
+
+            else:
+                redirect(url_for('workerHome'))
+        except Exception as e:
+            print(str(e))
+
+        return redirect(url_for('workerHome'))
+ # User is not loggedin redirect to login page
+    return redirect(url_for('login'))
+
+
+
+
+
 
 
 if __name__ == '__main__':
